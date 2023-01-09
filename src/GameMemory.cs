@@ -46,7 +46,7 @@ class GameData : MemoryWatcherList
 			CurrentBikMovie = new(new DeepPointer(0x1810348, 0x48, 0), 64);
 			CutsceneActive = new(new DeepPointer(0x1802D88, 0x9ec));
 			MissionStatsScreenFlags = new(new DeepPointer(0x18292F8, 0x3c, 0x550, 0x520, 0x110));
-			StringTableBase = 0x3804014;
+			StringTableBase = 0x17F4270;
 			IsLoading = new(new DeepPointer("binkw64.dll", 0x31494));
 		}
 
@@ -276,7 +276,15 @@ class GameMemory
 
     string GetEngineStringByID(int id)
     {
-        var ptr = new DeepPointer(_data.StringTableBase, (id*4), 0x10);
+        DeepPointer ptr;
+        if (_process.Is64Bit())
+        {
+            ptr = new DeepPointer(_data.StringTableBase, (id * 8), 0x14);
+        }
+        else
+		{
+			ptr = new DeepPointer(_data.StringTableBase, (id * 4), 0x10);
+		}
         return ptr.DerefString(_process, 32);
     }
 }
