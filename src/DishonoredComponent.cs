@@ -102,8 +102,9 @@ class DishonoredComponent : LogicComponent
             || (type == GameMemory.AreaCompletionType.MissionEnd && Settings.AutoSplitMissionEnd)
             || (type == GameMemory.AreaCompletionType.PrisonEscape && Settings.AutoSplitPrisonEscape)
             || (type == GameMemory.AreaCompletionType.OutsidersDream && Settings.AutoSplitOutsidersDream)
-            || (type == GameMemory.AreaCompletionType.Weepers && Settings.AutoSplitWeepers))
-        {
+			|| (type == GameMemory.AreaCompletionType.Weepers && this.Settings.AutoSplitWeepers)
+			|| (type == GameMemory.AreaCompletionType.DLC06IntroEnd && this.Settings.AutoSplitDLC06IntroEnd))
+		{
             _timer.Split();
         }
     }

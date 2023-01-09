@@ -68,8 +68,9 @@ class GameMemory
         MissionEnd,
         PrisonEscape,
         OutsidersDream,
-        Weepers
-    }
+		Weepers,
+		DLC06IntroEnd,
+	}
 
     public event EventHandler OnFirstLevelLoading;
     public event EventHandler OnPlayerGainedControl;
@@ -93,15 +94,19 @@ class GameMemory
         DishonoredExe14Steam = 19427328,
 		DishonoredExeEGS = 27553792,
 		BinkW32Dll = 241664,
-		BinkW64Dll = 364544
+		BinkW64Dll = 364544,
     }
 
 	private readonly Dictionary<string, AreaCompletionType> _areaCompletions = new()
     {
         ["LoadingSewers|L_Prison_"]    = AreaCompletionType.PrisonEscape,
         ["LoadingStreets|L_Pub_Dusk_"] = AreaCompletionType.OutsidersDream,
-        ["LoadingStreets|L_Pub_Day_"]  = AreaCompletionType.Weepers
-    };
+        ["LoadingStreets|L_Pub_Day_"]  = AreaCompletionType.Weepers,
+		["LoadingSewers|L_Prison_"] = AreaCompletionType.PrisonEscape,
+		["LoadingStreets|L_Pub_Dusk_"] = AreaCompletionType.OutsidersDream,
+		["LoadingStreets|L_Pub_Day_"] = AreaCompletionType.Weepers,
+		["LoadingDLC06Slaughter|DLC06_Tower_"] = AreaCompletionType.DLC06IntroEnd,
+	};
 
     public void Update()
     {
@@ -135,8 +140,8 @@ class GameMemory
             string currentLevelStr = GetEngineStringByID(_data.CurrentLevel.Current);
             Debug.WriteLine($"Level Changed - {_data.CurrentLevel.Old} -> {_data.CurrentLevel.Current} '{currentLevelStr}'");
 
-            if (currentLevelStr == "L_DLC07_BaseIntro_P" || currentLevelStr == "DLC06_Tower_P")
-                OnFirstLevelLoading?.Invoke(this, EventArgs.Empty);
+			if (currentLevelStr == "DLC06_Tower_P" || currentLevelStr == "L_DLC07_BaseIntro_P")
+			    OnFirstLevelLoading?.Invoke(this, EventArgs.Empty);
 
             _oncePerLevelFlag = true;
         }
@@ -179,13 +184,20 @@ class GameMemory
                     || (currentMovie == "Loading" || currentMovie == "LoadingDLC06Tower") && currentLevelStr == "DLC06_Tower_P") // KoD
                 {
                     OnPlayerGainedControl?.Invoke(this, EventArgs.Empty);
-                }
-            }
+				}
+
+				if ((currentMovie == "Loading" || currentMovie == "LoadingDLC07Intro") &&
+					currentLevelStr == "L_DLC07_BaseIntro_P" && _data.PlayerPosX.Current == -1831.55188f)
+				{
+					OnPlayerGainedControl?.Invoke(this, EventArgs.Empty);
+					_oncePerLevelFlag = false;
+				}
+			}
         }
 
-        if (_data.PlayerPosX.Changed && _data.PlayerPosX.Old == 0.0f && _loadingStarted &&
-            _data.PlayerPosX.Current<9826.5f && _data.PlayerPosX.Current>9826.0f)
-        {
+		if (_data.PlayerPosX.Changed && _loadingStarted &&
+			_data.PlayerPosX.Old == 0.0f && Math.Abs(_data.PlayerPosX.Current - 9826.25f) < 0.25f)
+		{
             string currentLevelStr = GetEngineStringByID(_data.CurrentLevel.Current);
 
             if (currentLevelStr == "l_tower_p")
@@ -273,7 +285,7 @@ enum GameVersion
 {
     v12,
     v14,
-    EGS
+    EGS,
 }
 
 class FakeMemoryWatcher<T>
