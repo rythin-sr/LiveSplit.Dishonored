@@ -27,7 +27,8 @@ class GameData : MemoryWatcherList
             CutsceneActive = new(new DeepPointer(0xFB51CC, 0x744));
             MissionStatsScreenFlags = new(new DeepPointer(0xFDEB08, 0x24, 0x41C, 0x2E0, 0xC4));
             StringTableBase = 0xFA3624;
-        }
+			IsLoading = new(new DeepPointer("binkw32.dll", 0x312F4));
+		}
         else if (version == GameVersion.v14)
         {
             PlayerPosX = new(new DeepPointer(0x1052DE8, 0xC4));
@@ -36,11 +37,20 @@ class GameData : MemoryWatcherList
             CutsceneActive = new(new DeepPointer(0x103B20C, 0x744));
             MissionStatsScreenFlags = new(new DeepPointer(0x1065184, 0x24, 0x41C, 0x2F4, 0xC4));
             StringTableBase = 0x1029664;
-        }
+			IsLoading = new(new DeepPointer("binkw32.dll", 0x312F4));
+		}
+        else if (version == GameVersion.EGS)
+        {
+			PlayerPosX = new(new DeepPointer(0x1815310, 0xb0));
+			CurrentLevel = new(new DeepPointer(0x1815310, 0x1a0, 0x5b8));
+			CurrentBikMovie = new(new DeepPointer(0x1810348, 0x48, 0), 64);
+			CutsceneActive = new(new DeepPointer(0x1802D88, 0x9ec));
+			MissionStatsScreenFlags = new(new DeepPointer(0x18292F8, 0x3c, 0x550, 0x520, 0x110));
+			StringTableBase = 0x3804014;
+			IsLoading = new(new DeepPointer("binkw64.dll", 0x31494));
+		}
 
         CurrentLevel.FailAction = MemoryWatcher.ReadFailAction.SetZeroOrNull;
-
-        IsLoading = new(new DeepPointer("binkw32.dll", 0x312F4));
 
         AddRange(GetType().GetProperties()
             .Where(p => !p.GetIndexParameters().Any())
@@ -81,10 +91,12 @@ class GameMemory
         DishonoredExe12 = 18219008,
         DishonoredExe14Reloaded = 18862080,
         DishonoredExe14Steam = 19427328,
-        BinkW32Dll = 241664
+		DishonoredExeEGS = 27553792,
+		BinkW32Dll = 241664,
+		BinkW64Dll = 364544
     }
 
-    private readonly Dictionary<string, AreaCompletionType> _areaCompletions = new()
+	private readonly Dictionary<string, AreaCompletionType> _areaCompletions = new()
     {
         ["LoadingSewers|L_Prison_"]    = AreaCompletionType.PrisonEscape,
         ["LoadingStreets|L_Pub_Dusk_"] = AreaCompletionType.OutsidersDream,
@@ -210,11 +222,11 @@ class GameMemory
         if (game == null)
             return false;
 
-        ProcessModuleWow64Safe binkw32 = game.ModulesWow64Safe().FirstOrDefault(p => p.ModuleName.ToLower() == "binkw32.dll");
-        if (binkw32 == null)
+        ProcessModuleWow64Safe binkw = game.ModulesWow64Safe().FirstOrDefault(p => p.ModuleName.ToLower() == "binkw32.dll" || p.ModuleName.ToLower() == "binkw64.dll");
+        if (binkw == null)
             return false;
 
-        if (binkw32.ModuleMemorySize != (int)ExpectedDllSizes.BinkW32Dll)
+        if (binkw.ModuleMemorySize != (int)ExpectedDllSizes.BinkW32Dll && binkw.ModuleMemorySize != (int)ExpectedDllSizes.BinkW64Dll)
         {
             _ignorePIDs.Add(game.Id);
             MessageBox.Show("binkw32.dll was not the expected version.", "LiveSplit.Dishonored",
@@ -231,7 +243,11 @@ class GameMemory
         {
             version = GameVersion.v14;
         }
-        else
+		else if (game.MainModuleWow64Safe().ModuleMemorySize == (int)ExpectedDllSizes.DishonoredExeEGS)
+		{
+			version = GameVersion.EGS;
+		}
+		else
         {
             _ignorePIDs.Add(game.Id);
             MessageBox.Show("Unexpected game version. Dishonored 1.2 or 1.4 is required.", "LiveSplit.Dishonored",
@@ -256,7 +272,8 @@ class GameMemory
 enum GameVersion
 {
     v12,
-    v14
+    v14,
+    EGS
 }
 
 class FakeMemoryWatcher<T>
